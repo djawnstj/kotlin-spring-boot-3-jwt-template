@@ -1,8 +1,10 @@
 package com.djawnstj.jwt.auth.config
 
+import com.djawnstj.jwt.auth.web.JwtAuthenticationFilter
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.http.HttpMethod
 import org.springframework.security.authentication.AuthenticationProvider
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
@@ -35,9 +37,13 @@ class SecurityConfig(
                 headers.frameOptions { it.disable() }
             }
             authorizeHttpRequests {
-                it.requestMatchers(*WHITE_LIST_URLS).permitAll()
+                it
+                    .requestMatchers(*WHITE_LIST_URLS).permitAll()
+                    .requestMatchers(HttpMethod.POST, "/api/v1/users").permitAll()
+                    .requestMatchers("/api/users**")
+                    .hasRole("ADMIN")
                     .anyRequest()
-                    .authenticated()
+                    .fullyAuthenticated()
             }
             sessionManagement { it.sessionCreationPolicy(SessionCreationPolicy.STATELESS) }
             authenticationProvider(authenticationProvider)

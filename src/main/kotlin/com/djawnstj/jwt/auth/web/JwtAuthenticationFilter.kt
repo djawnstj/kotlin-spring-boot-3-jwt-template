@@ -1,4 +1,4 @@
-package com.djawnstj.jwt.auth.config
+package com.djawnstj.jwt.auth.web
 
 import com.djawnstj.jwt.auth.repository.TokenRedisRepository
 import com.djawnstj.jwt.auth.service.JwtService
@@ -7,6 +7,7 @@ import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.core.context.SecurityContextHolder
+import org.springframework.security.core.userdetails.UserDetails
 import org.springframework.security.core.userdetails.UserDetailsService
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource
 import org.springframework.stereotype.Component
@@ -16,13 +17,10 @@ import org.springframework.web.filter.OncePerRequestFilter
 class JwtAuthenticationFilter(
     private val jwtService: JwtService,
     private val userDetailsService: UserDetailsService,
-    private val tokenRepository: TokenRedisRepository
+    private val tokenRedisRepository: TokenRedisRepository
 ): OncePerRequestFilter() {
-    override fun doFilterInternal(
-        request: HttpServletRequest,
-        response: HttpServletResponse,
-        filterChain: FilterChain
-    ) {
+
+    override fun doFilterInternal(request: HttpServletRequest, response: HttpServletResponse, filterChain: FilterChain) {
 
         if (request.servletPath.contains("/api/v1/auth")) {
             filterChain.doFilter(request, response)
@@ -40,17 +38,21 @@ class JwtAuthenticationFilter(
 
         if (loginId != null && SecurityContextHolder.getContext().authentication == null) {
             val userDetails = userDetailsService.loadUserByUsername(loginId)
-            val isValidToken = tokenRepository.findByToken(jwt)?.isValid() ?: false
+            val isValidToken = tokenRedisRepository.findByToken(jwt)?.equals(loginId) ?: false
 
             if (jwtService.isTokenValid(jwt, userDetails) && isValidToken) {
-                UsernamePasswordAuthenticationToken(userDetails, null, userDetails.authorities)
-                    .also {
-                        it.details = WebAuthenticationDetailsSource().buildDetails(request)
-                        SecurityContextHolder.getContext().authentication = it
-                    }
+                updateContext(userDetails, request)
             }
         }
 
         filterChain.doFilter(request, response)
     }
+
+    private fun updateContext(userDetails: UserDetails, request: HttpServletRequest) =
+        UsernamePasswordAuthenticationToken(userDetails, null, userDetails.authorities)
+            .also {
+                it.details = WebAuthenticationDetailsSource().buildDetails(request)
+                SecurityContextHolder.getContext().authentication = it
+            }
+
 }

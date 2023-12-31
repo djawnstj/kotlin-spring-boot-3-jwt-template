@@ -18,15 +18,9 @@ class JwtService(
         jwtProperties.key.toByteArray()
     )
 
-    fun extractUsername(token: String): String = extractClaim(token, Claims::getSubject)
+    fun extractUsername(token: String): String? = extractAllClaims(token)?.subject
 
-    private fun <T> extractClaim(token: String, claimsResolver: (Claims) -> T): T =
-        claimsResolver.invoke(extractAllClaims(token))
-
-    private fun <T> extractClaim(token: String, claimsResolver: Function<Claims, T>): T =
-        claimsResolver.apply(extractAllClaims(token))
-
-    private fun extractAllClaims(token: String): Claims =
+    private fun extractAllClaims(token: String): Claims? =
         Jwts.parser()
             .verifyWith(secretKey)
             .build()
@@ -38,6 +32,9 @@ class JwtService(
 
     fun generateRefreshToken(userDetails: UserDetails): String =
         buildToken(userDetails, jwtProperties.refreshTokenExpiration)
+
+    fun generateTokenPair(userDetails: UserDetails): Pair<String, String> =
+        generateAccessToken(userDetails) to generateRefreshToken(userDetails)
 
     fun buildToken(userDetails: UserDetails, expiration: Long, additionalClaims: Map<String, Any> = emptyMap()): String =
         Jwts.builder()
@@ -53,7 +50,7 @@ class JwtService(
     fun isTokenValid(token: String, userDetails: UserDetails): Boolean =
         (extractUsername(token) == extractUsername(userDetails.username)) && !isTokenExpired(token)
 
-    private fun isTokenExpired(token: String): Boolean = extractExpiration(token).before(Date())
+    private fun isTokenExpired(token: String): Boolean = extractExpiration(token)?.before(Date()) ?: true
 
-    private fun extractExpiration(token: String): Date = extractClaim(token, Claims::getExpiration)
+    private fun extractExpiration(token: String): Date? = extractAllClaims(token)?.expiration
 }

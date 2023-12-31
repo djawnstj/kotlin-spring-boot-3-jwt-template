@@ -1,10 +1,11 @@
 package com.djawnstj.jwt.auth.repository
 
-import com.djawnstj.jwt.auth.entity.Token
+import com.djawnstj.jwt.auth.entity.TokenCache
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.springframework.data.redis.core.RedisTemplate
 import org.springframework.data.redis.core.ValueOperations
 import org.springframework.stereotype.Repository
+import java.util.concurrent.TimeUnit
 
 @Repository
 class TokenRedisRepository(
@@ -15,9 +16,14 @@ class TokenRedisRepository(
     private val valueOperations: ValueOperations<String, String>
         get() = this.redisTemplate.opsForValue()
 
-    fun findByToken(jwt: String): Token? =
-        redisTemplate.keys("*")
-            .map { objectMapper.readValue(it, Token::class.java) }
-            .find { it.token == jwt }
+    fun save(tokenCache: TokenCache) {
+        valueOperations[tokenCache.token] = objectMapper.writeValueAsString(tokenCache.loginId)
+
+        valueOperations.getAndExpire(tokenCache.token, tokenCache.ttl, TimeUnit.MILLISECONDS)
+    }
+
+    fun findByToken(jwt: String): String? = valueOperations.get(jwt)
+
+    fun deleteByToken(jwt: String) = redisTemplate.delete(jwt)
 
 }
