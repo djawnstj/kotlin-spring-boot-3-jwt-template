@@ -1,5 +1,6 @@
 package com.djawnstj.jwt.auth.web
 
+import com.djawnstj.jwt.auth.repository.TokenRedisRepository
 import com.djawnstj.jwt.auth.service.JwtService
 import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletRequest
@@ -16,6 +17,7 @@ import org.springframework.web.filter.OncePerRequestFilter
 class JwtAuthenticationFilter(
     private val jwtService: JwtService,
     private val userDetailsService: UserDetailsService,
+    private val tokenRedisRepository: TokenRedisRepository,
 ): OncePerRequestFilter() {
 
     override fun doFilterInternal(request: HttpServletRequest, response: HttpServletResponse, filterChain: FilterChain) {
@@ -32,10 +34,11 @@ class JwtAuthenticationFilter(
         }
 
         val jwt = authHeader.substring(7)
-        val loginId = jwtService.extractUsername(jwt)
+        val username = jwtService.extractUsername(jwt)
+        val tokens = tokenRedisRepository.findByLoginId(username)
 
-        if (loginId != null && SecurityContextHolder.getContext().authentication == null) {
-            val userDetails = userDetailsService.loadUserByUsername(loginId)
+        if (tokens?.accessToken == jwt && SecurityContextHolder.getContext().authentication == null) {
+            val userDetails = userDetailsService.loadUserByUsername(username)
 
             if (jwtService.isTokenValid(jwt, userDetails)) {
                 updateContext(userDetails, request)

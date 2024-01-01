@@ -18,7 +18,11 @@ class JwtService(
         jwtProperties.key.toByteArray()
     )
 
-    fun extractUsername(token: String): String? = extractAllClaims(token)?.subject
+    fun extractUsername(token: String): String = extractAllClaims(token)?.subject.isValidUsernameFromToken()
+
+    private fun String?.isValidUsernameFromToken(): String =
+        if (isNullOrBlank()) throw IllegalArgumentException("Invalid Refresh Token.")
+        else this
 
     private fun extractAllClaims(token: String): Claims? =
         Jwts.parser()
@@ -50,7 +54,7 @@ class JwtService(
     fun isTokenValid(token: String, userDetails: UserDetails): Boolean =
         (extractUsername(token) == userDetails.username) && !isTokenExpired(token)
 
-    private fun isTokenExpired(token: String): Boolean = extractExpiration(token)?.before(Date()) ?: true
+    fun isTokenExpired(token: String): Boolean = extractExpiration(token)?.before(Date()) ?: true
 
     private fun extractExpiration(token: String): Date? = extractAllClaims(token)?.expiration
 }
