@@ -10,22 +10,22 @@ import org.springframework.security.core.userdetails.UserDetails
 @Entity
 class User(
     val loginId: String,
-    val password: String,
-    val name: String,
+    val loginPassword: String,
+    var name: String,
     @Enumerated(EnumType.STRING)
     val role: Role,
 ): BaseEntity(), UserDetails {
     override fun getAuthorities(): Collection<GrantedAuthority> = this.role.getAuthorities()
 
-    override fun getPassword(): String = this.password
+    override fun getPassword(): String = this.loginPassword
 
     override fun getUsername(): String = this.loginId
 
-    override fun isAccountNonExpired(): Boolean = true
+    override fun isAccountNonExpired(): Boolean = this.deletedAt == null
 
-    override fun isAccountNonLocked(): Boolean = true
+    override fun isAccountNonLocked(): Boolean = this.deletedAt == null
 
-    override fun isCredentialsNonExpired(): Boolean = true
+    override fun isCredentialsNonExpired(): Boolean = this.deletedAt == null
 
     override fun isEnabled(): Boolean = this.deletedAt == null
 }

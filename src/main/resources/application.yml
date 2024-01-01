@@ -20,7 +20,7 @@ spring:
         highlight_sql: true
         #        dialect: org.hibernate.dialect.MySQL5Dialect
         storage_engine: innodb
-    defer-datasource-initialization: true
+        globally_quoted_identifiers: true
 
   h2:
     console:

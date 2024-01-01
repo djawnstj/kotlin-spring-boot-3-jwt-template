@@ -40,10 +40,9 @@ class SecurityConfig(
                 it
                     .requestMatchers(*WHITE_LIST_URLS).permitAll()
                     .requestMatchers(HttpMethod.POST, "/api/v1/users").permitAll()
-                    .requestMatchers("/api/users**")
-                    .hasRole("ADMIN")
+                    .requestMatchers(HttpMethod.GET, "/api/v1/users").hasRole("ADMIN")
                     .anyRequest()
-                    .fullyAuthenticated()
+                    .authenticated()
             }
             sessionManagement { it.sessionCreationPolicy(SessionCreationPolicy.STATELESS) }
             authenticationProvider(authenticationProvider)

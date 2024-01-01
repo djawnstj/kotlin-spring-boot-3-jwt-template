@@ -48,7 +48,7 @@ class JwtService(
             .compact()
 
     fun isTokenValid(token: String, userDetails: UserDetails): Boolean =
-        (extractUsername(token) == extractUsername(userDetails.username)) && !isTokenExpired(token)
+        (extractUsername(token) == userDetails.username) && !isTokenExpired(token)
 
     private fun isTokenExpired(token: String): Boolean = extractExpiration(token)?.before(Date()) ?: true
 

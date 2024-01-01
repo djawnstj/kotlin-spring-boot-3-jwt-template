@@ -1,4 +1,4 @@
-package com.djawnstj.jwt.auth.dto.response
+package com.djawnstj.jwt.user.dto.response
 
 data class SignUpResponse(
     val loginId: String,

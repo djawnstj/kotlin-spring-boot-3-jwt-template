@@ -15,7 +15,20 @@ class UserQueryRepository(
             entity(User::class)
         ).where(
             path(User::deletedAt).isNull()
+                .and(
+                    path(User::loginId).equal(loginId)
+                )
         )
     }.firstOrNull()
+
+    fun findAllNotWithdrawn(): List<User> = userRepository.findAll {
+        select(
+            entity(User::class)
+        ).from(
+            entity(User::class)
+        ).where(
+            path(User::deletedAt).isNull()
+        )
+    }.filterNotNull()
 
 }

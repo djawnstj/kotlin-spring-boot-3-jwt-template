@@ -10,14 +10,13 @@ import java.util.concurrent.TimeUnit
 @Repository
 class TokenRedisRepository(
     private val redisTemplate: RedisTemplate<String, String>,
-    private val objectMapper: ObjectMapper
 ) {
 
     private val valueOperations: ValueOperations<String, String>
         get() = this.redisTemplate.opsForValue()
 
     fun save(tokenCache: TokenCache) {
-        valueOperations[tokenCache.token] = objectMapper.writeValueAsString(tokenCache.loginId)
+        valueOperations[tokenCache.token] = tokenCache.loginId
 
         valueOperations.getAndExpire(tokenCache.token, tokenCache.ttl, TimeUnit.MILLISECONDS)
     }
@@ -25,5 +24,6 @@ class TokenRedisRepository(
     fun findByToken(jwt: String): String? = valueOperations.get(jwt)
 
     fun deleteByToken(jwt: String) = redisTemplate.delete(jwt)
+
 
 }

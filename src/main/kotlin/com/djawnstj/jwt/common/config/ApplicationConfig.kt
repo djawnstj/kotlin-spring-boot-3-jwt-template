@@ -17,7 +17,6 @@ class ApplicationConfig(
     private val userRepository: UserQueryRepository
 ) {
 
-    // TODO 익셉션 고민 필요
     @Bean
     fun userDetailsService(): UserDetailsService = UserDetailsService {
         userRepository.findByLoginId(it) ?: throw UsernameNotFoundException("User Not Found")
