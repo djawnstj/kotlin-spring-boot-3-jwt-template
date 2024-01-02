@@ -1,6 +1,6 @@
 package com.djawnstj.jwt.auth.repository
 
-import com.djawnstj.jwt.auth.entity.Credentials
+import com.djawnstj.jwt.auth.entity.AuthenticationCredentials
 import com.djawnstj.jwt.auth.entity.TokenCache
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.springframework.data.redis.core.RedisTemplate
@@ -23,10 +23,10 @@ class TokenRedisRepository(
         valueOperations.getAndExpire(tokenCache.key, tokenCache.ttl, TimeUnit.MILLISECONDS)
     }
 
-    fun findByLoginId(loginId: String): Credentials? =
-        valueOperations[loginId]?.let { objectMapper.readValue(it, Credentials::class.java) } ?: run { null }
+    fun findById(id: String): AuthenticationCredentials? =
+        valueOperations[id]?.let { objectMapper.readValue(it, AuthenticationCredentials::class.java) } ?: run { null }
 
-    fun deleteByLoginId(loginId: String) = redisTemplate.delete(loginId)
+    fun deleteById(id: String) = redisTemplate.delete(id)
 
     fun deleteAll() = redisTemplate.delete(redisTemplate.keys("*"))
 

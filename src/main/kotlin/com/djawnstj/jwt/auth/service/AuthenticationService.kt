@@ -5,7 +5,7 @@ import com.djawnstj.jwt.auth.dto.request.SignInRequest
 import com.djawnstj.jwt.auth.dto.request.TokenRefreshRequest
 import com.djawnstj.jwt.auth.dto.response.SignInResponse
 import com.djawnstj.jwt.auth.dto.response.TokenRefreshResponse
-import com.djawnstj.jwt.auth.entity.Credentials
+import com.djawnstj.jwt.auth.entity.AuthenticationCredentials
 import com.djawnstj.jwt.auth.entity.TokenCache
 import com.djawnstj.jwt.auth.repository.TokenRedisRepository
 import com.djawnstj.jwt.user.entity.User
@@ -31,41 +31,42 @@ class AuthenticationService(
                 UsernamePasswordAuthenticationToken(request.loginId, request.password)
         ).principal as User
 
-        val (accessToken, refreshToken) = jwtService.generateTokenPair(user)
+        val authenticationCredentials = jwtService.generateAuthenticationCredentials(user)
 
-        saveTokens(accessToken, refreshToken, user)
+        saveTokenCache(authenticationCredentials.identifier.public, authenticationCredentials)
 
-        return SignInResponse(accessToken, refreshToken)
+        return authenticationCredentials.credentials.run { SignInResponse(accessToken, refreshToken) }
     }
 
     fun refreshToken(request: TokenRefreshRequest): TokenRefreshResponse {
         val presentedRefreshToken = request.refreshToken
 
         val loginId: String = jwtService.extractUsername(presentedRefreshToken)
+        val jti = jwtService.extractJti(presentedRefreshToken)
 
         val user = userQueryRepository.findByLoginId(loginId).isValidUser()
 
-        val foundTokens = tokenRedisRepository.findByLoginId(loginId).isValidToken()
+        val foundTokens = tokenRedisRepository.findById(jti).isValidToken()
 
-        validateRefreshToken(presentedRefreshToken, foundTokens.refreshToken, user)
+        validateRefreshToken(presentedRefreshToken, foundTokens.credentials.refreshToken, user)
 
-        validateActiveAccessToken(foundTokens, user)
+        validateActiveAccessToken(foundTokens.credentials.accessToken, user)
 
-        val (accessToken, refreshToken) = jwtService.generateTokenPair(user)
+        val authenticationCredentials = jwtService.generateAuthenticationCredentials(user)
 
-        saveTokens(accessToken, refreshToken, user)
+        saveTokenCache(authenticationCredentials.identifier.public, authenticationCredentials)
+        tokenRedisRepository.deleteById(jti)
 
-        return TokenRefreshResponse(accessToken, refreshToken)
+        return authenticationCredentials.credentials.run { TokenRefreshResponse(accessToken, refreshToken) }
     }
 
-    private fun validateActiveAccessToken(foundTokens: Credentials, user: User) {
-        if (jwtService.isTokenExpired(foundTokens.accessToken)) throw IllegalArgumentException("Refresh request denied. Active accessToken detected.")
-        tokenRedisRepository.deleteByLoginId(user.loginId)
+    private fun validateActiveAccessToken(accessToken: String, user: User) {
+        if (!jwtService.checkTokenExpiredByTokenString(accessToken)) throw IllegalArgumentException("Refresh request denied. Active accessToken detected.")
+        tokenRedisRepository.deleteById(user.loginId)
     }
 
-    private fun saveTokens(accessToken: String, refreshToken: String, user: User) {
-        val credentials = Credentials(accessToken, refreshToken)
-        val tokenCache = TokenCache(user.loginId, credentials, jwtProperties.refreshTokenExpiration)
+    private fun saveTokenCache(uuid: String, authenticationCredentials: AuthenticationCredentials) {
+        val tokenCache = TokenCache(uuid, authenticationCredentials, jwtProperties.refreshTokenExpiration)
 
         tokenRedisRepository.save(tokenCache)
     }
@@ -77,7 +78,7 @@ class AuthenticationService(
 
     private fun User?.isValidUser(): User = this ?: throw IllegalArgumentException("Use Not Found.")
 
-    private fun Credentials?.isValidToken(): Credentials =
+    private fun AuthenticationCredentials?.isValidToken(): AuthenticationCredentials =
         this?.let { this } ?: throw IllegalArgumentException("Credentials Not Found.")
 
 }

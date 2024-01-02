@@ -20,10 +20,10 @@ class CustomLogoutHandler(
         if (authHeader == null || !authHeader.startsWith("Bearer ")) return
 
         val jwt = authHeader.substring(7)
-        val username = jwtService.extractUsername(jwt)
+        val jti = jwtService.extractJti(jwt)
 
-        tokenRedisRepository.findByLoginId(username)?.let {
-            tokenRedisRepository.deleteByLoginId(username)
+        tokenRedisRepository.findById(jti)?.let {
+            tokenRedisRepository.deleteById(jti)
             SecurityContextHolder.clearContext()
         } ?: throw IllegalArgumentException("Token Not Found")
     }
