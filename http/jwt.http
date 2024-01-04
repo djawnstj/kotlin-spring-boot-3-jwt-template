@@ -1,0 +1,88 @@
+### 회원 가입 (USER)
+POST {{baseUrl}}{{signUpEndPoint}}
+Content-Type: application/json
+
+{
+  "loginId": "test1",
+  "password": "test1",
+  "name": "test1",
+  "role": "USER"
+}
+
+### 회원 가입 (ADMIN)
+POST {{baseUrl}}{{signUpEndPoint}}
+Content-Type: application/json
+
+{
+  "loginId": "test2",
+  "password": "test2",
+  "name": "test2",
+  "role": "ADMIN"
+}
+
+### 로그인 (USER)
+POST {{baseUrl}}{{loginEndPoint}}
+Content-Type: application/json
+
+{
+  "loginId": "test1",
+  "password": "test1"
+}
+
+> {%
+    client.test("Validate", function () {
+        client.assert(response.status === 200, "Response status is not 200");
+        client.assert(response.contentType.mimeType === "application/json", "Expected 'application/json'");
+        client.assert(response.body.accessToken.trim().length > 0);
+        client.assert(response.body.refreshToken.trim().length > 0);
+    });
+
+    client.global.set("userAccessToken", response.body.accessToken)
+    client.global.set("userRefreshToken", response.body.refreshToken)
+%}
+
+### 로그인 (ADMIN)
+POST {{baseUrl}}{{loginEndPoint}}
+Content-Type: application/json
+
+{
+  "loginId": "test2",
+  "password": "test2"
+}
+
+> {%
+    client.test("Validate", function () {
+        client.assert(response.status === 200, "Response status is not 200");
+        client.assert(response.contentType.mimeType === "application/json", "Expected 'application/json'");
+        client.assert(response.body.accessToken.trim().length > 0);
+        client.assert(response.body.refreshToken.trim().length > 0);
+    });
+
+    client.log(response.body.accessToken); // 토큰 값 로깅, body에는 응답받은 json이 객체 형식으로 저장된다. 즉 { accessToken:"value" }가 응답이라면, 여기선 value라 로깅된다.
+    client.log(response.body.refreshToken); // 토큰 값 로깅, body에는 응답받은 json이 객체 형식으로 저장된다. 즉 { accessToken:"value" }가 응답이라면, 여기선 value라 로깅된다.
+    client.global.set("adminAccessToken", response.body.accessToken)
+    client.global.set("adminRefreshToken", response.body.refreshToken)
+%}
+
+### 회원 목록 (USER)
+GET {{baseUrl}}{{usersEndPoint}}
+Authorization: Bearer {{userAccessToken}}
+
+> {%
+    client.test("Validate", function () {
+        client.assert(response.status === 403, "Response status is not 403");
+    });
+%}
+
+### 회원 목록 (ADMIN)
+GET {{baseUrl}}{{usersEndPoint}}
+Authorization: Bearer {{adminAccessToken}}
+
+> {%
+    client.test("Validate", function () {
+        client.assert(response.status === 200, "Response status is not 200");
+        client.assert(response.contentType.mimeType === "application/json", "Expected 'application/json'");
+        // client.assert(response.body.accessToken.trim().length > 0);
+        // client.assert(response.body.refreshToken.trim().length > 0);
+    });
+%}
