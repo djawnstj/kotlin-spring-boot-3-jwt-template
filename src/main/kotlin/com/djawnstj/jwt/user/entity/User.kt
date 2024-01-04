@@ -1,6 +1,7 @@
 package com.djawnstj.jwt.user.entity
 
 import com.djawnstj.jwt.common.entity.BaseEntity
+import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.EnumType
 import jakarta.persistence.Enumerated
@@ -9,6 +10,7 @@ import org.springframework.security.core.userdetails.UserDetails
 
 @Entity
 class User(
+    @Column(unique = true)
     val loginId: String,
     val loginPassword: String,
     var name: String,

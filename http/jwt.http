@@ -9,6 +9,10 @@ Content-Type: application/json
   "role": "USER"
 }
 
+> {%
+    client.global.set("userLoginId", response.body.loginId)
+%}
+
 ### 회원 가입 (ADMIN)
 POST {{baseUrl}}{{signUpEndPoint}}
 Content-Type: application/json
@@ -58,8 +62,6 @@ Content-Type: application/json
         client.assert(response.body.refreshToken.trim().length > 0);
     });
 
-    client.log(response.body.accessToken); // 토큰 값 로깅, body에는 응답받은 json이 객체 형식으로 저장된다. 즉 { accessToken:"value" }가 응답이라면, 여기선 value라 로깅된다.
-    client.log(response.body.refreshToken); // 토큰 값 로깅, body에는 응답받은 json이 객체 형식으로 저장된다. 즉 { accessToken:"value" }가 응답이라면, 여기선 value라 로깅된다.
     client.global.set("adminAccessToken", response.body.accessToken)
     client.global.set("adminRefreshToken", response.body.refreshToken)
 %}
@@ -82,7 +84,82 @@ Authorization: Bearer {{adminAccessToken}}
     client.test("Validate", function () {
         client.assert(response.status === 200, "Response status is not 200");
         client.assert(response.contentType.mimeType === "application/json", "Expected 'application/json'");
-        // client.assert(response.body.accessToken.trim().length > 0);
-        // client.assert(response.body.refreshToken.trim().length > 0);
+        client.assert(response.body.users.length > 0);
+    });
+%}
+
+### 회원 정보
+GET {{baseUrl}}{{userInfoEndPoint}}/{{userLoginId}}
+Authorization: Bearer {{userAccessToken}}
+
+> {%
+    client.test("Validate", function () {
+        client.assert(response.status === 200, "Response status is not 200");
+        client.assert(response.contentType.mimeType === "application/json", "Expected 'application/json'");
+        client.assert(response.body.loginId.trim().length > 0);
+        client.assert(response.body.loginId.trim() == client.global.get("userLoginId"), "loginId does not match");
+        client.assert(response.body.name.trim().length > 0);
+    });
+%}
+
+### 회원 정보 수정
+PUT {{baseUrl}}{{changeUserInfoEndPoint}}
+Content-Type: application/json
+Authorization: Bearer {{userAccessToken}}
+
+{
+  "name": "test123"
+}
+
+> {%
+    client.test("Validate", function () {
+        client.assert(response.status === 200, "Response status is not 200");
+        client.assert(response.contentType.mimeType === "application/json", "Expected 'application/json'");
+        client.assert(response.body.loginId.trim().length > 0);
+        client.assert(response.body.loginId.trim() == client.global.get("userLoginId"), "loginId does not match");
+        client.assert(response.body.name.trim().length > 0);
+        client.assert(response.body.name.trim() == "test123", "name does not match");
+    });
+%}
+
+### 토큰 리프레쉬 (USER)
+POST {{baseUrl}}{{refreshEndPoint}}
+Content-Type: application/json
+Authorization: Bearer {{userAccessToken}}
+
+{
+  "refreshToken": "{{userRefreshToken}}"
+}
+
+> {%
+    client.test("Validate", function () {
+        client.assert(response.status === 200, "Response status is not 200");
+        client.assert(response.contentType.mimeType === "application/json", "Expected 'application/json'");
+        client.assert(response.body.accessToken.trim().length > 0);
+        client.assert(response.body.refreshToken.trim().length > 0);
+    });
+
+    client.global.set("adminAccessToken", response.body.accessToken)
+    client.global.set("adminRefreshToken", response.body.refreshToken)
+%}
+
+### 로그아웃 (USER)
+POST {{baseUrl}}{{logoutEndPoint}}
+Authorization: Bearer {{userAccessToken}}
+
+> {%
+    client.test("Validate", function () {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+%}
+
+### 회원 탈퇴 (USER)
+DELETE {{baseUrl}}{{withdrawEndPoint}}
+Authorization: Bearer {{userAccessToken}}
+
+> {%
+    client.test("Validate", function () {
+        client.assert(response.status === 200, "Response status is not 200");
+        client.assert(response.body == true);
     });
 %}
